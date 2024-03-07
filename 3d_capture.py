@@ -56,7 +56,13 @@ while True:
 
     # Convert depth to a visual format for display
     depth_visual = cv2.normalize(depth_frame, None, 0, 255, cv2.NORM_MINMAX)
-    frame = cv2.cvtColor(depth_visual.astype(np.uint8), cv2.COLOR_GRAY2BGR)
+    depth_visual = depth_visual.astype(np.uint8)  # Ensure the image is in 8-bit format
+
+    # Apply a color map to the normalized depth image
+    colored_depth = cv2.applyColorMap(depth_visual, cv2.COLORMAP_JET)
+
+    # Use the colored depth image for visualization and further processing
+    frame = colored_depth
 
     if roi_selected:
         # Check if there's an intrusion in the specified ROI and depth range
