@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 import chronoptics.tof as tof
-from PIL import Image
 
 # Initialize 3D camera
 serial = "203001c"
