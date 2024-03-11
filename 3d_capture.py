@@ -13,7 +13,7 @@ draw = False  # True if the mouse is pressed. Used for selecting ROI.
 roi_selected = False  # Flag to check if ROI has been selected
 rect = (0, 0, 0, 0)  # Coordinates of the rectangle (ROI)
 start_point = (0, 0)  # Starting point of the rectangle
-DEPTH_THRESHOLD = (1000, 3000)  # Example depth threshold in mm
+DEPTH_THRESHOLD = (1000, 3000)  # depth threshold in mm
 
 # Mouse callback function for selecting ROI
 def click_event(event, x, y, flags, param):
@@ -53,18 +53,18 @@ while True:
     frames = cam.getFrames()
     depth_frame = np.asarray(frames[0], dtype=np.float32)
 
-    # Convert depth to a visual format for display
+    # depth converted to a visual format for display
     depth_visual = cv2.normalize(depth_frame, None, 0, 255, cv2.NORM_MINMAX)
     depth_visual = depth_visual.astype(np.uint8)  # Ensure the image is in 8-bit format
 
-    # Apply a color map to the normalized depth image
+    # Color map applied to the normalized depth image
     colored_depth = cv2.applyColorMap(depth_visual, cv2.COLORMAP_JET)
 
-    # Use the colored depth image for visualization and further processing
+    # Colored depth image for visualization and further processing
     frame = colored_depth
 
     if roi_selected:
-        # Check if there's an intrusion in the specified ROI and depth range
+        # intrusion check in the specified ROI and depth range
         if check_intrusion(depth_frame, rect, DEPTH_THRESHOLD):
             cv2.putText(frame, "Intrusion Detected!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         cv2.rectangle(frame, (rect[0], rect[1]), (rect[2], rect[3]), (0, 255, 0), 2)
