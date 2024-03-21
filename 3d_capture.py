@@ -49,7 +49,7 @@ def check_intrusion(depth_frame, rect, depth_threshold):
 cv2.namedWindow("Frame")
 cv2.setMouseCallback("Frame", click_event)
 
-while True:
+while cam.isStreaming():
     frames = cam.getFrames()
     depth_frame = np.asarray(frames[0], dtype=np.float32)
 
