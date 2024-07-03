@@ -3,17 +3,27 @@ import numpy as np
 import chronoptics.tof as tof
 
 # Initialize 3D camera
-serial = "203001c"
+serial="2030019"
 cam = tof.KeaCamera(serial=serial)
 tof.selectStreams(cam, [tof.FrameType.Z])
 cam.start()
+
+frames = cam.getFrames()
+depth_frame = np.asarray(frames[0])
+print(depth_frame.shape)
+
 
 # Global variables for the intrusion detection system
 draw = False  # True if the mouse is pressed. Used for selecting ROI.
 roi_selected = False  # Flag to check if ROI has been selected
 rect = (0, 0, 0, 0)  # Coordinates of the rectangle (ROI)
 start_point = (0, 0)  # Starting point of the rectangle
-DEPTH_THRESHOLD = (1000, 3000)  # depth threshold in mm
+DEPTH_THRESHOLD = (200, 500)  # depth threshold in mm
+MIN_SIZE_THRESHOLD = 50  # Minimum number of pixels to consider as intrusion
+TEMPORAL_THRESHOLD = 3  # Number of consecutive frames to confirm intrusion
+
+# Variable for depicting sum of intrusions in consecutive frames
+consecutive_intrusions = 0
 
 # Mouse callback function for selecting ROI
 def click_event(event, x, y, flags, param):
@@ -37,14 +47,16 @@ def click_event(event, x, y, flags, param):
         cv2.imshow("Frame", frame)
 
 # Function to check for intrusion in the selected ROI and depth range
-def check_intrusion(depth_frame, rect, depth_threshold):
+def check_intrusion(depth_frame, rect, depth_threshold, min_size_threshold):
     # Crop the depth frame to the selected ROI
     x, y, x2, y2 = rect
     cropped_depth = depth_frame[y:y2, x:x2]
     
-    # Check for presence within the depth threshold
-    intrusion_detected = np.any((cropped_depth > depth_threshold[0]) & (cropped_depth < depth_threshold[1]))
-    return intrusion_detected
+    intrusion_mask = (cropped_depth > depth_threshold[0]) & (cropped_depth < depth_threshold[1])
+    intrusion_size = np.sum(intrusion_mask)
+
+    intrusion_detected = intrusion_size > min_size_threshold
+    return intrusion_detected, intrusion_size
 
 cv2.namedWindow("Frame")
 cv2.setMouseCallback("Frame", click_event)
@@ -64,9 +76,19 @@ while cam.isStreaming():
     frame = colored_depth
 
     if roi_selected:
-        # intrusion check in the specified ROI and depth range
-        if check_intrusion(depth_frame, rect, DEPTH_THRESHOLD):
+        intrusion_detected, intrusion_size = check_intrusion(depth_frame, rect, DEPTH_THRESHOLD, MIN_SIZE_THRESHOLD)
+
+        if intrusion_detected:
+            consecutive_intrusions += 1
+        else:
+            consecutive_intrusions = 0
+
+        if consecutive_intrusions >= TEMPORAL_THRESHOLD:
+            # If intrusion is observed in frames equal to or more than temporal threshold defined, then display the text as intrusion detected
             cv2.putText(frame, "Intrusion Detected!", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            consecutive_intrusions = 0 # Reset after alarming
+        
+        
         cv2.rectangle(frame, (rect[0], rect[1]), (rect[2], rect[3]), (0, 255, 0), 2)
 
     cv2.imshow("Frame", frame)
@@ -77,4 +99,7 @@ while cam.isStreaming():
 
 # Cleanup
 cam.stop()
+cam = None
 cv2.destroyAllWindows()
+
+
